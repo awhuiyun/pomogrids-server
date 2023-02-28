@@ -12,12 +12,12 @@ function getTasks(req: Request, res: Response) {
   });
 }
 
+// Function to get tasks by year
 type GetTaskByYearPayload = {
   user_id: string;
   year: number;
 };
 
-// Function to get tasks by year
 function getTasksByYear(req: Request, res: Response) {
   try {
     const { user_id, year } = req.body as GetTaskByYearPayload;
@@ -34,7 +34,7 @@ function getTasksByYear(req: Request, res: Response) {
       }
     );
   } catch (error) {
-    console.error(" POST /tasks//get-tasks-by-year", error);
+    console.error(" POST /tasks/get-tasks-by-year", error);
     return res.status(400).json({
       status: "error",
       message: "request to get tasks by year failed",
@@ -43,7 +43,37 @@ function getTasksByYear(req: Request, res: Response) {
 }
 
 // Function to get incomplete tasks (as of yesterday)
-function getIncompleteTasks(req: Request, res: Response) {}
+type GetIncompleteTasksPayload = {
+  user_id: string;
+  yesterday_year: number;
+  yesterday_month: number;
+  yesterday_day: number;
+};
+
+function getIncompleteTasks(req: Request, res: Response) {
+  try {
+    const { user_id, yesterday_year, yesterday_month, yesterday_day } =
+      req.body as GetIncompleteTasksPayload;
+
+    db.query(
+      "SELECT tasks.task_name, tasks_sessions.date_of_session, tasks_sessions.number_of_minutes FROM tasks_sessions JOIN tasks ON tasks_sessions.task_id = tasks.id WHERE tasks.user_id = (?) AND YEAR(tasks_sessions.date_of_session) = (?)",
+      [user_id],
+      (error, result) => {
+        if (error) {
+          console.log(error);
+        } else {
+          res.send(result);
+        }
+      }
+    );
+  } catch (error) {
+    console.error(" POST /tasks/incomplete-tasks", error);
+    return res.status(400).json({
+      status: "error",
+      message: "request to get incomplete tasks failed",
+    });
+  }
+}
 
 // Function to create new tasks
 function createNewTask(req: Request, res: Response) {}
