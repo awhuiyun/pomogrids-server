@@ -64,22 +64,19 @@ async function getTasksByYear(req: Request, res: Response) {
 }
 
 // Function to get incomplete tasks (as of yesterday)
-type GetIncompleteTasksPayload = {
+type GetUnarchivedTasksPayload = {
   user_id: string;
-  yesterday_year: number;
-  yesterday_month: number;
-  yesterday_day: number;
 };
 
-async function getIncompleteTasks(req: Request, res: Response) {
+async function getUnarchivedTasks(req: Request, res: Response) {
   try {
-    const { user_id, yesterday_year, yesterday_month, yesterday_day } =
-      req.body as GetIncompleteTasksPayload;
+    const { user_id } = req.body as GetUnarchivedTasksPayload;
 
+    // Query for raw results
     const result = await new Promise((resolve, reject) => {
       db.query(
-        "SELECT tasks.task_name, tasks_sessions.date_of_session, tasks_sessions.number_of_minutes FROM tasks_sessions JOIN tasks ON tasks_sessions.task_id = tasks.id WHERE tasks.user_id = (?) AND YEAR(tasks_sessions.date_of_session) = (?)",
-        [user_id],
+        "SELECT user_id, id as task_id, task_name, target_num_of_sessions, category_name, category_colour, SUM(tasks_sessions.number_of_sessions) as completed_num_of_sessions, SUM(tasks_sessions.number_of_minutes) as completed_num_of_minutes, is_archived FROM tasks JOIN tasks_sessions ON tasks.id = tasks_sessions.task_id GROUP BY task_id HAVING tasks.user_id = (?) AND tasks.is_archived = (?)",
+        [user_id, false],
         (error, result) => {
           if (error) {
             return reject(error);
@@ -92,10 +89,10 @@ async function getIncompleteTasks(req: Request, res: Response) {
 
     res.send(result);
   } catch (error) {
-    console.error(" POST /tasks/incomplete-tasks", error);
+    console.error(" POST /tasks/unarchived-tasks", error);
     return res.status(400).json({
       status: "error",
-      message: "request to get incomplete tasks failed",
+      message: "request to get unarchived tasks failed",
     });
   }
 }
@@ -125,10 +122,11 @@ async function createNewTask(req: Request, res: Response) {
 
     const result = await new Promise((resolve, reject) => {
       db.query(
-        "INSERT INTO tasks (task_name, target_num_of_sessions, completed_num_of_sessions, is_completed, user_id, category_name, category_colour) VALUES ((?), (?), (?), (?), (?), (?), (?))",
+        "INSERT INTO tasks (task_name, target_num_of_sessions, is_archieved, completed_num_of_sessions, is_completed, user_id, category_name, category_colour) VALUES ((?), (?), (?), (?), (?), (?), (?), (?))",
         [
           task_name,
           target_num_of_sessions,
+          false,
           completed_num_of_sessions,
           is_completed,
           user_id,
@@ -346,7 +344,7 @@ async function updateTaskAfterSession(req: Request, res: Response) {
 
 export {
   getTasksByYear,
-  getIncompleteTasks,
+  getUnarchivedTasks,
   createNewTask,
   updateExistingTask,
   deleteExistingTask,

@@ -3,7 +3,7 @@ const router = express.Router();
 
 import {
   getTasksByYear,
-  getIncompleteTasks,
+  getUnarchivedTasks,
   createNewTask,
   updateExistingTask,
   deleteExistingTask,
@@ -11,7 +11,7 @@ import {
 } from "../controllers/tasks";
 
 router.post("/get-tasks-by-year", getTasksByYear);
-router.post("/incomplete-tasks", getIncompleteTasks);
+router.post("/unarchived-tasks", getUnarchivedTasks);
 router.post("/create", createNewTask);
 router.patch("/update", updateExistingTask);
 router.delete("/delete", deleteExistingTask);
