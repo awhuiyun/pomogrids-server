@@ -7,20 +7,27 @@ type GetTaskByYearPayload = {
   year: number;
 };
 
+type TaskItem = {
+  task_name: string;
+  date_of_session: string;
+  number_of_minutes: number;
+  category_name: string | undefined;
+  category_colour: string | undefined;
+};
+
 async function getTasksByYear(req: Request, res: Response) {
   try {
     const { user_id, year } = req.body as GetTaskByYearPayload;
 
     // Convert local time to UTC timezone:
-    const start_date = new Date(year + "-01-01");
-    const end_date = new Date(year + "-03-01");
+    const start_date_utc = new Date(year + "-01-01").toISOString(); // UTC
+    const end_date_utc = new Date(year + 1 + "-01-01").toISOString(); // UTC
 
-    console.log(start_date, end_date);
-
-    const result = await new Promise((resolve, reject) => {
-      db.query(
-        "SELECT tasks.task_name, tasks_sessions.date_of_session, tasks_sessions.number_of_minutes, tasks.category_name, tasks.category_colour FROM tasks_sessions JOIN tasks ON tasks_sessions.task_id = tasks.id WHERE tasks.user_id = (?) AND tasks_sessions.date_of_session >= (?) AND tasks_sessions.date_of_session <= (?) ",
-        [user_id, start_date, end_date],
+    //  Query for result
+    let db_result: TaskItem[] = await new Promise((resolve, reject) => {
+      db.query<any[]>(
+        "SELECT tasks.task_name, tasks_sessions.date_of_session, tasks_sessions.number_of_minutes, tasks.category_name, tasks.category_colour FROM tasks_sessions JOIN tasks ON tasks_sessions.task_id = tasks.id WHERE tasks.user_id = (?) AND (tasks_sessions.date_of_session BETWEEN (?) AND (?) )",
+        [user_id, start_date_utc, end_date_utc],
         (error, result) => {
           if (error) {
             return reject(error);
@@ -30,7 +37,23 @@ async function getTasksByYear(req: Request, res: Response) {
         }
       );
     });
-    res.send(result);
+
+    // Manipulate the result:
+    const response: TaskItem[] = [];
+
+    db_result.forEach((item) => {
+      const revised_item = {
+        task_name: item.task_name,
+        date_of_session: new Date(item.date_of_session).toISOString(),
+        number_of_minutes: item.number_of_minutes,
+        category_name: item.category_name,
+        category_colour: item.category_colour,
+      };
+
+      response.push(revised_item);
+    });
+
+    res.send(response);
   } catch (error) {
     console.error(" POST /tasks/get-tasks-by-year", error);
     return res.status(400).json({
