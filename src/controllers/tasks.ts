@@ -1,38 +1,36 @@
 import { Response, Request } from "express";
 import { db } from "../db";
 
-// TEST
-function getTasks(req: Request, res: Response) {
-  db.query("SELECT * FROM users", (error, result) => {
-    if (error) {
-      console.log(error);
-    } else {
-      res.send(result);
-    }
-  });
-}
-
 // Function to get tasks by year
 type GetTaskByYearPayload = {
   user_id: string;
   year: number;
 };
 
-function getTasksByYear(req: Request, res: Response) {
+async function getTasksByYear(req: Request, res: Response) {
   try {
     const { user_id, year } = req.body as GetTaskByYearPayload;
 
-    db.query(
-      "SELECT tasks.task_name, tasks_sessions.date_of_session, tasks_sessions.number_of_minutes FROM tasks_sessions JOIN tasks ON tasks_sessions.task_id = tasks.id WHERE tasks.user_id = (?) AND YEAR(tasks_sessions.date_of_session) = (?)",
-      [user_id, year],
-      (error, result) => {
-        if (error) {
-          console.log(error);
-        } else {
-          res.send(result);
+    // Convert local time to UTC timezone:
+    const start_date = new Date(year + "-01-01");
+    const end_date = new Date(year + "-03-01");
+
+    console.log(start_date, end_date);
+
+    const result = await new Promise((resolve, reject) => {
+      db.query(
+        "SELECT tasks.task_name, tasks_sessions.date_of_session, tasks_sessions.number_of_minutes, tasks.category_name, tasks.category_colour FROM tasks_sessions JOIN tasks ON tasks_sessions.task_id = tasks.id WHERE tasks.user_id = (?) AND tasks_sessions.date_of_session >= (?) AND tasks_sessions.date_of_session <= (?) ",
+        [user_id, start_date, end_date],
+        (error, result) => {
+          if (error) {
+            return reject(error);
+          } else {
+            return resolve(result);
+          }
         }
-      }
-    );
+      );
+    });
+    res.send(result);
   } catch (error) {
     console.error(" POST /tasks/get-tasks-by-year", error);
     return res.status(400).json({
@@ -50,22 +48,26 @@ type GetIncompleteTasksPayload = {
   yesterday_day: number;
 };
 
-function getIncompleteTasks(req: Request, res: Response) {
+async function getIncompleteTasks(req: Request, res: Response) {
   try {
     const { user_id, yesterday_year, yesterday_month, yesterday_day } =
       req.body as GetIncompleteTasksPayload;
 
-    db.query(
-      "SELECT tasks.task_name, tasks_sessions.date_of_session, tasks_sessions.number_of_minutes FROM tasks_sessions JOIN tasks ON tasks_sessions.task_id = tasks.id WHERE tasks.user_id = (?) AND YEAR(tasks_sessions.date_of_session) = (?)",
-      [user_id],
-      (error, result) => {
-        if (error) {
-          console.log(error);
-        } else {
-          res.send(result);
+    const result = await new Promise((resolve, reject) => {
+      db.query(
+        "SELECT tasks.task_name, tasks_sessions.date_of_session, tasks_sessions.number_of_minutes FROM tasks_sessions JOIN tasks ON tasks_sessions.task_id = tasks.id WHERE tasks.user_id = (?) AND YEAR(tasks_sessions.date_of_session) = (?)",
+        [user_id],
+        (error, result) => {
+          if (error) {
+            return reject(error);
+          } else {
+            return resolve(result);
+          }
         }
-      }
-    );
+      );
+    });
+
+    res.send(result);
   } catch (error) {
     console.error(" POST /tasks/incomplete-tasks", error);
     return res.status(400).json({
@@ -86,7 +88,7 @@ type CreateNewTaskPayload = {
   category_colour?: string;
 };
 
-function createNewTask(req: Request, res: Response) {
+async function createNewTask(req: Request, res: Response) {
   try {
     const {
       user_id,
@@ -98,25 +100,28 @@ function createNewTask(req: Request, res: Response) {
       category_colour,
     } = req.body as CreateNewTaskPayload;
 
-    db.query(
-      "INSERT INTO tasks (task_name, target_num_of_sessions, completed_num_of_sessions, is_completed, user_id, category_name, category_colour) VALUES ((?), (?), (?), (?), (?), (?), (?))",
-      [
-        task_name,
-        target_num_of_sessions,
-        completed_num_of_sessions,
-        is_completed,
-        user_id,
-        category_name,
-        category_colour,
-      ],
-      (error, result) => {
-        if (error) {
-          console.log(error);
-        } else {
-          res.send("New task successfully created!");
+    const result = await new Promise((resolve, reject) => {
+      db.query(
+        "INSERT INTO tasks (task_name, target_num_of_sessions, completed_num_of_sessions, is_completed, user_id, category_name, category_colour) VALUES ((?), (?), (?), (?), (?), (?), (?))",
+        [
+          task_name,
+          target_num_of_sessions,
+          completed_num_of_sessions,
+          is_completed,
+          user_id,
+          category_name,
+          category_colour,
+        ],
+        (error, result) => {
+          if (error) {
+            return reject(error);
+          } else {
+            return resolve("New task successfully created!");
+          }
         }
-      }
-    );
+      );
+    });
+    res.send(result);
   } catch (error) {
     console.error(" POST /tasks/create", error);
     return res.status(400).json({
@@ -137,7 +142,7 @@ type UpdateExistingTaskPayload = {
   category_colour?: string;
 };
 
-function updateExistingTask(req: Request, res: Response) {
+async function updateExistingTask(req: Request, res: Response) {
   try {
     const {
       user_id,
@@ -149,25 +154,29 @@ function updateExistingTask(req: Request, res: Response) {
       category_colour,
     } = req.body as UpdateExistingTaskPayload;
 
-    db.query(
-      "UPDATE tasks SET task_name = (?), target_num_of_sessions= (?), is_completed= (?), category_name= (?), category_colour= (?) WHERE user_id= (?) AND id=(?)",
-      [
-        task_name,
-        target_num_of_sessions,
-        is_completed,
-        category_name,
-        category_colour,
-        user_id,
-        task_id,
-      ],
-      (error, result) => {
-        if (error) {
-          console.log(error);
-        } else {
-          res.send("Existing task successfully updated!");
+    const result = await new Promise((resolve, reject) => {
+      db.query(
+        "UPDATE tasks SET task_name = (?), target_num_of_sessions= (?), is_completed= (?), category_name= (?), category_colour= (?) WHERE user_id= (?) AND id=(?)",
+        [
+          task_name,
+          target_num_of_sessions,
+          is_completed,
+          category_name,
+          category_colour,
+          user_id,
+          task_id,
+        ],
+        (error, result) => {
+          if (error) {
+            return reject(error);
+          } else {
+            return resolve("Existing task successfully updated!");
+          }
         }
-      }
-    );
+      );
+    });
+
+    res.send(result);
   } catch (error) {
     console.error(" PATCH /tasks/update", error);
     return res.status(400).json({
@@ -178,57 +187,111 @@ function updateExistingTask(req: Request, res: Response) {
 }
 
 // Function to delete existing task
+type DeleteExistingTaskPayload = {
+  user_id: string;
+  task_id: string;
+};
+
 function deleteExistingTask(req: Request, res: Response) {
   try {
-    // const { user_id, yesterday_year, yesterday_month, yesterday_day } =
-    //   req.body as GetIncompleteTasksPayload;
-    // db.query(
-    //   "SELECT tasks.task_name, tasks_sessions.date_of_session, tasks_sessions.number_of_minutes FROM tasks_sessions JOIN tasks ON tasks_sessions.task_id = tasks.id WHERE tasks.user_id = (?) AND YEAR(tasks_sessions.date_of_session) = (?)",
-    //   [user_id],
-    //   (error, result) => {
-    //     if (error) {
-    //       console.log(error);
-    //     } else {
-    //       res.send(result);
-    //     }
-    //   }
-    // );
+    const { user_id, task_id } = req.body as DeleteExistingTaskPayload;
+
+    db.query(
+      "SELECT tasks.task_name, tasks_sessions.date_of_session, tasks_sessions.number_of_minutes FROM tasks_sessions JOIN tasks ON tasks_sessions.task_id = tasks.id WHERE tasks.user_id = (?) AND YEAR(tasks_sessions.date_of_session) = (?)",
+      [user_id],
+      (error, result) => {
+        if (error) {
+          console.log(error);
+        } else {
+          res.send(result);
+        }
+      }
+    );
   } catch (error) {
-    // console.error(" POST /tasks/incomplete-tasks", error);
-    // return res.status(400).json({
-    //   status: "error",
-    //   message: "request to get incomplete tasks failed",
-    // });
+    console.error(" DELETE /tasks/delete", error);
+    return res.status(400).json({
+      status: "error",
+      message: "request to delete existing task failed",
+    });
   }
 }
 
 // Function to update task after user completes a pomodoro session
-function updateTaskAfterSession(req: Request, res: Response) {
+type UpdateTaskAfterSessioPayload = {
+  task_id: string;
+  number_of_sessions: number;
+  number_of_minutes: number;
+};
+
+async function updateTaskAfterSession(req: Request, res: Response) {
   try {
-    // const { user_id, yesterday_year, yesterday_month, yesterday_day } =
-    //   req.body as GetIncompleteTasksPayload;
-    // db.query(
-    //   "SELECT tasks.task_name, tasks_sessions.date_of_session, tasks_sessions.number_of_minutes FROM tasks_sessions JOIN tasks ON tasks_sessions.task_id = tasks.id WHERE tasks.user_id = (?) AND YEAR(tasks_sessions.date_of_session) = (?)",
-    //   [user_id],
-    //   (error, result) => {
-    //     if (error) {
-    //       console.log(error);
-    //     } else {
-    //       res.send(result);
-    //     }
-    //   }
-    // );
+    const { task_id, number_of_sessions, number_of_minutes } =
+      req.body as UpdateTaskAfterSessioPayload;
+
+    // If number_of_sessions > 1: Task exist in tasks_sessions table
+    if (number_of_sessions > 1) {
+      // Get current num_of_sessions and num_of_minutes:
+      let current_num_of_sessions;
+      let current_num_of_minutes;
+      let updated_num_of_sessions;
+      let updated_num_of_minutes;
+
+      db.query<any[]>(
+        "SELECT number_of_sessions, number_of_minutes FROM tasks_sessions WHERE task_id=(?)",
+        [task_id],
+        (error, result) => {
+          if (error) {
+            console.log(error);
+          } else {
+            current_num_of_sessions = result[0].number_of_sessions;
+            current_num_of_minutes = result[0].number_of_minutes;
+
+            updated_num_of_sessions =
+              current_num_of_sessions + number_of_sessions;
+            updated_num_of_minutes = current_num_of_minutes + number_of_minutes;
+
+            // Update tasks_sessions table
+            db.query(
+              "UPDATE tasks_sessions SET number_of_sessions=(?), number_of_minutes=(?) WHERE task_id=(?)",
+              [updated_num_of_sessions, updated_num_of_minutes, task_id],
+              (error, result) => {
+                if (error) {
+                  console.log(error);
+                } else {
+                  res.send(
+                    "Task successfully updated after completed session!"
+                  );
+                }
+              }
+            );
+          }
+        }
+      );
+
+      // If number_of_sessions = 1: Task does not exist in tasks_sessions table
+    } else {
+      db.query(
+        "INSERT INTO tasks_sessions (task_id,number_of_sessions, number_of_minutes ) VALUE ((?),(?),(?))",
+        [task_id, number_of_sessions, number_of_minutes],
+        (error, result) => {
+          if (error) {
+            console.log(error);
+          } else {
+            res.send("Task successfully updated after completed session!");
+          }
+        }
+      );
+    }
   } catch (error) {
-    // console.error(" POST /tasks/incomplete-tasks", error);
-    // return res.status(400).json({
-    //   status: "error",
-    //   message: "request to get incomplete tasks failed",
-    // });
+    console.error(" PATCH /tasks/session-complete", error);
+    return res.status(400).json({
+      status: "error",
+      message: "request to update task after session failed",
+    });
   }
 }
 
 export {
-  getTasks,
   getTasksByYear,
   getIncompleteTasks,
   createNewTask,
