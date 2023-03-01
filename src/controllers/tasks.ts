@@ -68,26 +68,69 @@ type GetUnarchivedTasksPayload = {
   user_id: string;
 };
 
+type UnarchivedTaskItem = {
+  user_id: string;
+  task_id: string;
+  task_name: string;
+  target_num_of_sessions: number;
+  completed_num_of_sessions: number;
+  completed_num_of_minutes: number;
+  category_name: string | undefined;
+  category_colour: string | undefined;
+  is_archived: boolean;
+};
+
+type ModifiedUnarchivedTaskItem = {
+  task_id: string;
+  task_name: string;
+  target_num_of_sessions: number;
+  completed_num_of_sessions: number;
+  completed_num_of_minutes: number;
+  category_name: string | undefined;
+  category_colour: string | undefined;
+  is_archived: boolean;
+};
+
 async function getUnarchivedTasks(req: Request, res: Response) {
   try {
     const { user_id } = req.body as GetUnarchivedTasksPayload;
 
     // Query for raw results
-    const result = await new Promise((resolve, reject) => {
-      db.query(
-        "SELECT user_id, id as task_id, task_name, target_num_of_sessions, category_name, category_colour, SUM(tasks_sessions.number_of_sessions) as completed_num_of_sessions, SUM(tasks_sessions.number_of_minutes) as completed_num_of_minutes, is_archived FROM tasks JOIN tasks_sessions ON tasks.id = tasks_sessions.task_id GROUP BY task_id HAVING tasks.user_id = (?) AND tasks.is_archived = (?)",
-        [user_id, false],
-        (error, result) => {
-          if (error) {
-            return reject(error);
-          } else {
-            return resolve(result);
+    const result: UnarchivedTaskItem[] = await new Promise(
+      (resolve, reject) => {
+        db.query<any[]>(
+          "SELECT user_id, id as task_id, task_name, target_num_of_sessions, category_name, category_colour, SUM(tasks_sessions.number_of_sessions) as completed_num_of_sessions, SUM(tasks_sessions.number_of_minutes) as completed_num_of_minutes, is_archived FROM tasks JOIN tasks_sessions ON tasks.id = tasks_sessions.task_id GROUP BY task_id HAVING tasks.user_id = (?) AND tasks.is_archived = (?)",
+          [user_id, false],
+          (error, result) => {
+            if (error) {
+              return reject(error);
+            } else {
+              return resolve(result);
+            }
           }
-        }
-      );
+        );
+      }
+    );
+
+    // Manipulate the result:
+    const response: ModifiedUnarchivedTaskItem[] = [];
+
+    result.forEach((item) => {
+      const revised_item = {
+        task_id: item.task_id,
+        task_name: item.task_name,
+        target_num_of_sessions: item.target_num_of_sessions,
+        completed_num_of_sessions: item.completed_num_of_sessions,
+        completed_num_of_minutes: item.completed_num_of_minutes,
+        category_name: item.category_name,
+        category_colour: item.category_colour,
+        is_archived: item.is_archived,
+      };
+
+      response.push(revised_item);
     });
 
-    res.send(result);
+    res.send(response);
   } catch (error) {
     console.error(" POST /tasks/unarchived-tasks", error);
     return res.status(400).json({
@@ -155,7 +198,7 @@ async function createNewTask(req: Request, res: Response) {
 
     const result = await new Promise((resolve, reject) => {
       db.query(
-        "INSERT INTO tasks (task_name, target_num_of_sessions, is_archieved, completed_num_of_sessions, is_completed, user_id, category_name, category_colour) VALUES ((?), (?), (?), (?), (?), (?), (?), (?))",
+        "INSERT INTO tasks (task_name, target_num_of_sessions, is_archived, completed_num_of_sessions, is_completed, user_id, category_name, category_colour) VALUES ((?), (?), (?), (?), (?), (?), (?), (?))",
         [
           task_name,
           target_num_of_sessions,
