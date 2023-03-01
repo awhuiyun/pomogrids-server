@@ -188,25 +188,40 @@ async function updateExistingTask(req: Request, res: Response) {
 
 // Function to delete existing task
 type DeleteExistingTaskPayload = {
-  user_id: string;
   task_id: string;
 };
 
-function deleteExistingTask(req: Request, res: Response) {
+async function deleteExistingTask(req: Request, res: Response) {
   try {
-    const { user_id, task_id } = req.body as DeleteExistingTaskPayload;
+    const { task_id } = req.body as DeleteExistingTaskPayload;
 
-    db.query(
-      "SELECT tasks.task_name, tasks_sessions.date_of_session, tasks_sessions.number_of_minutes FROM tasks_sessions JOIN tasks ON tasks_sessions.task_id = tasks.id WHERE tasks.user_id = (?) AND YEAR(tasks_sessions.date_of_session) = (?)",
-      [user_id],
-      (error, result) => {
-        if (error) {
-          console.log(error);
-        } else {
-          res.send(result);
+    await new Promise((resolve, reject) => {
+      db.query(
+        "DELETE FROM tasks_sessions WHERE task_id=(?)",
+        [task_id],
+        (error, result) => {
+          if (error) {
+            return reject(error);
+          } else {
+            return resolve(
+              "Task successfully deleted from task_sessions table"
+            );
+          }
         }
-      }
-    );
+      );
+    });
+
+    const result_tasks = await new Promise((resolve, reject) => {
+      db.query("DELETE FROM tasks WHERE id=(?)", [task_id], (error, result) => {
+        if (error) {
+          return reject(error);
+        } else {
+          return resolve("Task successfully deleted from task table");
+        }
+      });
+    });
+
+    res.send(result_tasks);
   } catch (error) {
     console.error(" DELETE /tasks/delete", error);
     return res.status(400).json({
