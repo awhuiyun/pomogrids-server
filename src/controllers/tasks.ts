@@ -228,59 +228,74 @@ async function updateTaskAfterSession(req: Request, res: Response) {
     const { task_id, number_of_sessions, number_of_minutes } =
       req.body as UpdateTaskAfterSessioPayload;
 
-    // If number_of_sessions > 1: Task exist in tasks_sessions table
-    if (number_of_sessions > 1) {
-      // Get current num_of_sessions and num_of_minutes:
-      let current_num_of_sessions;
-      let current_num_of_minutes;
-      let updated_num_of_sessions;
-      let updated_num_of_minutes;
+    // Get current num_of_sessions and num_of_minutes of today: To check if the task has been worked on
+    const today_date = new Date().toISOString();
+    const today_year = parseInt(today_date.split("T")[0].split("-")[0]);
+    const today_month = parseInt(today_date.split("T")[0].split("-")[1]);
+    const today_day = parseInt(today_date.split("T")[0].split("-")[2]);
+    let current_num_of_sessions = 0;
+    let current_num_of_minutes = 0;
 
+    await new Promise((resolve, reject) => {
       db.query<any[]>(
-        "SELECT number_of_sessions, number_of_minutes FROM tasks_sessions WHERE task_id=(?)",
-        [task_id],
+        "SELECT number_of_sessions, number_of_minutes FROM tasks_sessions WHERE task_id=(?) AND YEAR(tasks_sessions.date_of_session) = (?) AND MONTH(tasks_sessions.date_of_session) = (?) AND DAY(tasks_sessions.date_of_session) = (?)",
+        [task_id, today_year, today_month, today_day],
         (error, result) => {
           if (error) {
-            console.log(error);
+            return reject(error);
           } else {
-            current_num_of_sessions = result[0].number_of_sessions;
-            current_num_of_minutes = result[0].number_of_minutes;
-
-            updated_num_of_sessions =
-              current_num_of_sessions + number_of_sessions;
-            updated_num_of_minutes = current_num_of_minutes + number_of_minutes;
-
-            // Update tasks_sessions table
-            db.query(
-              "UPDATE tasks_sessions SET number_of_sessions=(?), number_of_minutes=(?) WHERE task_id=(?)",
-              [updated_num_of_sessions, updated_num_of_minutes, task_id],
-              (error, result) => {
-                if (error) {
-                  console.log(error);
-                } else {
-                  res.send(
-                    "Task successfully updated after completed session!"
-                  );
-                }
-              }
-            );
+            if (result.length > 0) {
+              console.log(result);
+              current_num_of_sessions = result[0].number_of_sessions;
+              current_num_of_minutes = result[0].number_of_minutes;
+            } else {
+              current_num_of_sessions = 0;
+              current_num_of_minutes = 0;
+            }
+            return resolve("queried");
           }
         }
       );
+    });
 
-      // If number_of_sessions = 1: Task does not exist in tasks_sessions table
+    if (current_num_of_sessions > 0) {
+      const updated_num_of_sessions =
+        current_num_of_sessions + number_of_sessions;
+      const updated_num_of_minutes = current_num_of_minutes + number_of_minutes;
+
+      const result = new Promise((resolve, reject) => {
+        db.query(
+          "UPDATE tasks_sessions SET number_of_sessions=(?), number_of_minutes=(?) WHERE task_id=(?)",
+          [updated_num_of_sessions, updated_num_of_minutes, task_id],
+          (error, result) => {
+            if (error) {
+              return reject(error);
+            } else {
+              return resolve(
+                "Task successfully updated after completed session!"
+              );
+            }
+          }
+        );
+      });
+      res.send(result);
     } else {
-      db.query(
-        "INSERT INTO tasks_sessions (task_id,number_of_sessions, number_of_minutes ) VALUE ((?),(?),(?))",
-        [task_id, number_of_sessions, number_of_minutes],
-        (error, result) => {
-          if (error) {
-            console.log(error);
-          } else {
-            res.send("Task successfully updated after completed session!");
+      const result = await new Promise((resolve, reject) => {
+        db.query(
+          "INSERT INTO tasks_sessions (task_id,number_of_sessions, number_of_minutes ) VALUE ((?),(?),(?))",
+          [task_id, number_of_sessions, number_of_minutes],
+          (error, result) => {
+            if (error) {
+              return reject(error);
+            } else {
+              return resolve(
+                "Task successfully updated after completed session!"
+              );
+            }
           }
-        }
-      );
+        );
+      });
+      res.send(result);
     }
   } catch (error) {
     console.error(" PATCH /tasks/session-complete", error);
