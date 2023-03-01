@@ -63,7 +63,7 @@ async function getTasksByYear(req: Request, res: Response) {
   }
 }
 
-// Function to get incomplete tasks (as of yesterday)
+// Function to get unarchived tasks
 type GetUnarchivedTasksPayload = {
   user_id: string;
 };
@@ -93,6 +93,39 @@ async function getUnarchivedTasks(req: Request, res: Response) {
     return res.status(400).json({
       status: "error",
       message: "request to get unarchived tasks failed",
+    });
+  }
+}
+
+// Function to archive a task
+type ArchiveTaskPayload = {
+  task_id: string;
+};
+
+async function archiveTask(req: Request, res: Response) {
+  try {
+    const { task_id } = req.body as ArchiveTaskPayload;
+
+    const result = await new Promise((resolve, reject) => {
+      db.query(
+        "UPDATE tasks SET is_archived = (?) WHERE id=(?)",
+        [true, task_id],
+        (error, result) => {
+          if (error) {
+            return reject(error);
+          } else {
+            return resolve("Existing task successfully archived!");
+          }
+        }
+      );
+    });
+
+    res.send(result);
+  } catch (error) {
+    console.error(" PATCH /tasks/archive-task", error);
+    return res.status(400).json({
+      status: "error",
+      message: "request to archive task failed",
     });
   }
 }
@@ -345,6 +378,7 @@ async function updateTaskAfterSession(req: Request, res: Response) {
 export {
   getTasksByYear,
   getUnarchivedTasks,
+  archiveTask,
   createNewTask,
   updateExistingTask,
   deleteExistingTask,

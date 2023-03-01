@@ -4,6 +4,7 @@ const router = express.Router();
 import {
   getTasksByYear,
   getUnarchivedTasks,
+  archiveTask,
   createNewTask,
   updateExistingTask,
   deleteExistingTask,
@@ -12,6 +13,7 @@ import {
 
 router.post("/get-tasks-by-year", getTasksByYear);
 router.post("/unarchived-tasks", getUnarchivedTasks);
+router.patch("/archive-task", archiveTask);
 router.post("/create", createNewTask);
 router.patch("/update", updateExistingTask);
 router.delete("/delete", deleteExistingTask);
