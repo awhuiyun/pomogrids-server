@@ -44,7 +44,7 @@ async function getTasksByYear(req: Request, res: Response) {
     db_result.forEach((item) => {
       const revised_item = {
         task_name: item.task_name,
-        date_of_session: new Date(item.date_of_session).toISOString(),
+        date_of_session: new Date(item.date_of_session).toLocaleString(),
         number_of_minutes: item.number_of_minutes,
         category_name: item.category_name,
         category_colour: item.category_colour,
@@ -118,7 +118,6 @@ async function getUnarchivedTasks(req: Request, res: Response) {
     const response: ModifiedUnarchivedTaskItem[] = [];
 
     result.forEach((item) => {
-      console.log(item);
       const revised_item = {
         uniqueId: item.task_id,
         taskName: item.task_name,
@@ -190,8 +189,6 @@ type CreateNewTaskPayload = {
   user_id: string;
   task_name: string;
   target_num_of_sessions: string;
-  completed_num_of_sessions: string;
-  is_completed: boolean;
   category_name?: string;
   category_colour?: string;
 };
@@ -202,21 +199,17 @@ async function createNewTask(req: Request, res: Response) {
       user_id,
       task_name,
       target_num_of_sessions,
-      completed_num_of_sessions,
-      is_completed,
       category_name,
       category_colour,
     } = req.body as CreateNewTaskPayload;
 
     const result = await new Promise((resolve, reject) => {
       db.query(
-        "INSERT INTO tasks (task_name, target_num_of_sessions, is_archived, completed_num_of_sessions, is_completed, user_id, category_name, category_colour) VALUES ((?), (?), (?), (?), (?), (?), (?), (?))",
+        "INSERT INTO tasks (task_name, target_num_of_sessions, is_archived, user_id, category_name, category_colour) VALUES ((?), (?), (?), (?), (?), (?))",
         [
           task_name,
           target_num_of_sessions,
           false,
-          completed_num_of_sessions,
-          is_completed,
           user_id,
           category_name,
           category_colour,
@@ -246,7 +239,6 @@ type UpdateExistingTaskPayload = {
   task_id: string;
   task_name: string;
   target_num_of_sessions: string;
-  is_completed: boolean;
   category_name?: string;
   category_colour?: string;
 };
@@ -258,18 +250,16 @@ async function updateExistingTask(req: Request, res: Response) {
       task_id,
       task_name,
       target_num_of_sessions,
-      is_completed,
       category_name,
       category_colour,
     } = req.body as UpdateExistingTaskPayload;
 
     const result = await new Promise((resolve, reject) => {
       db.query(
-        "UPDATE tasks SET task_name = (?), target_num_of_sessions= (?), is_completed= (?), category_name= (?), category_colour= (?) WHERE user_id= (?) AND id=(?)",
+        "UPDATE tasks SET task_name = (?), target_num_of_sessions= (?), category_name= (?), category_colour= (?) WHERE user_id= (?) AND id=(?)",
         [
           task_name,
           target_num_of_sessions,
-          is_completed,
           category_name,
           category_colour,
           user_id,
@@ -406,8 +396,8 @@ async function updateTaskAfterSession(req: Request, res: Response) {
     } else {
       const result = await new Promise((resolve, reject) => {
         db.query(
-          "INSERT INTO tasks_sessions (task_id,number_of_sessions, number_of_minutes ) VALUE ((?),(?),(?))",
-          [task_id, number_of_sessions, number_of_minutes],
+          "INSERT INTO tasks_sessions (task_id,number_of_sessions, number_of_minutes, date_of_session_2 ) VALUE ((?),(?),(?),(?))",
+          [task_id, number_of_sessions, number_of_minutes, today_date],
           (error, result) => {
             if (error) {
               return reject(error);
