@@ -11,8 +11,6 @@ CREATE TABLE tasks (
     id SMALLINT PRIMARY KEY AUTO_INCREMENT,
     task_name VARCHAR(255) NOT NULL,
     target_num_of_sessions SMALLINT NOT NULL,
-    completed_num_of_sessions SMALLINT NOT NULL,
-    is_completed BOOLEAN NOT NULL,
     category_name VARCHAR(255),
     category_colour VARCHAR(255),
     user_id VARCHAR(255) NOT NULL,

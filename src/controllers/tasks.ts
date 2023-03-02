@@ -396,7 +396,7 @@ async function updateTaskAfterSession(req: Request, res: Response) {
     } else {
       const result = await new Promise((resolve, reject) => {
         db.query(
-          "INSERT INTO tasks_sessions (task_id,number_of_sessions, number_of_minutes, date_of_session_2 ) VALUE ((?),(?),(?),(?))",
+          "INSERT INTO tasks_sessions (task_id,number_of_sessions, number_of_minutes, date_of_session ) VALUE ((?),(?),(?),(?))",
           [task_id, number_of_sessions, number_of_minutes, today_date],
           (error, result) => {
             if (error) {
