@@ -101,7 +101,7 @@ async function getUnarchivedTasks(req: Request, res: Response) {
     const result: UnarchivedTaskItem[] = await new Promise(
       (resolve, reject) => {
         db.query<any[]>(
-          "SELECT user_id, id as task_id, task_name, target_num_of_sessions, category_name, category_colour, SUM(tasks_sessions.number_of_sessions) as completed_num_of_sessions, is_archived FROM tasks JOIN tasks_sessions ON tasks.id = tasks_sessions.task_id GROUP BY task_id HAVING tasks.user_id = (?) AND tasks.is_archived = (?)",
+          "SELECT user_id, id as task_id, task_name, target_num_of_sessions, category_name, category_colour, SUM(tasks_sessions.number_of_sessions) as completed_num_of_sessions, is_archived FROM tasks LEFT JOIN tasks_sessions ON tasks.id = tasks_sessions.task_id GROUP BY id HAVING tasks.user_id = (?) AND tasks.is_archived = (?)",
           [user_id, false],
           (error, result) => {
             if (error) {
@@ -118,23 +118,15 @@ async function getUnarchivedTasks(req: Request, res: Response) {
     const response: ModifiedUnarchivedTaskItem[] = [];
 
     result.forEach((item) => {
-      // Convert isArchived back into a boolean
-      let isArchivedConverted: boolean;
-
-      if (item.is_archived === 0) {
-        isArchivedConverted = false;
-      } else {
-        isArchivedConverted = true;
-      }
-
+      console.log(item);
       const revised_item = {
         uniqueId: item.task_id,
         taskName: item.task_name,
         targetNumOfSessions: item.target_num_of_sessions,
-        completedNumOfSessions: item.completed_num_of_sessions,
+        completedNumOfSessions: Number(item.completed_num_of_sessions) ?? 0,
         category_name: item.category_name,
         category_colour: item.category_colour,
-        isArchived: isArchivedConverted,
+        isArchived: false,
         isCompleted: false,
         isSelectedForTimer: false,
         isSelectedForEdit: false,
