@@ -2,7 +2,7 @@ import * as admin from "firebase-admin";
 import { Response, NextFunction } from "express";
 import { UidRequest } from "../types/interface";
 
-async function authenticateJWT(
+export async function authenticateJWT(
   req: UidRequest,
   res: Response,
   next: NextFunction
@@ -14,6 +14,7 @@ async function authenticateJWT(
       const idToken = authHeader.split(" ")[1];
       const decodedToken = await admin.auth().verifyIdToken(idToken);
       req.uid = decodedToken.uid;
+      req.email = decodedToken.email ?? "";
       next();
     } catch (error) {
       console.log(error);
@@ -30,4 +31,4 @@ async function authenticateJWT(
   }
 }
 
-export { authenticateJWT };
+// export { authenticateJWT };

@@ -1,7 +1,6 @@
 require("dotenv").config();
 
 import express from "express";
-import { Response, Request } from "express";
 import cors from "cors";
 import { router as tasks } from "./routers/tasks";
 import { router as settings } from "./routers/settings";
@@ -16,23 +15,6 @@ app.use(express.urlencoded({ extended: false }));
 app.use("/tasks", tasks);
 app.use("/settings", settings);
 app.use("/users", users);
-
-// Firebase endpoints
-
-// app.post("/users/", async (req: Request, res: Response) => {
-//   try {
-//     const authHeader = req.headers.authorization;
-
-//     if (authHeader) {
-//       const idToken = authHeader.split(" ")[1];
-//       const decodedToken = await admin.auth().verifyIdToken(idToken);
-//       const uid = decodedToken.uid;
-//       console.log(uid);
-//     }
-//   } catch (error) {
-//     console.log(error);
-//   }
-// });
 
 // Setting up on Port
 app.listen(process.env.PORT, () => {

@@ -1,8 +1,7 @@
 import express from "express";
 const router = express.Router();
+import { createNewAccount } from "../controllers/users";
 
-import { checkIfUserExists } from "../controllers/users";
-
-router.post("/check-if-user-exists", checkIfUserExists);
+router.patch("/create-new-account", createNewAccount);
 
 export { router };
