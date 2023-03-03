@@ -1,10 +1,20 @@
-// import { Response, Request } from "express";
+import { Response, Request } from "express";
+import { admin } from "../auth/firebase";
 
-// import { db } from "../db";
+// Function to check if user exists in User table
+async function checkIfUserExists(req: Request, res: Response) {
+  try {
+    const authHeader = req.headers.authorization;
 
-// // Function to check if user exists in User table
-// async function checkIfUserExists(req: Request, res: Response) {
-//   admin.auth().verifyIdToken();
-// }
+    if (authHeader) {
+      const idToken = authHeader.split(" ")[1];
+      const decodedToken = await admin.auth().verifyIdToken(idToken);
+      const uid = decodedToken.uid;
+      console.log(uid);
+    }
+  } catch (error) {
+    console.log(error);
+  }
+}
 
-// export { checkIfUserExists };
+export { checkIfUserExists };

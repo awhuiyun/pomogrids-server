@@ -1,8 +1,8 @@
-// import express from "express";
-// const router = express.Router();
+import express from "express";
+const router = express.Router();
 
-// import { checkIfUserExists } from "../controllers/users";
+import { checkIfUserExists } from "../controllers/users";
 
-// router.post("/check-if-user-exists", checkIfUserExists);
+router.post("/check-if-user-exists", checkIfUserExists);
 
-// export { router };
+export { router };
