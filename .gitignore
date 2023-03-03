@@ -122,3 +122,5 @@ yarn-debug.log*
 .idea/
 .vscode/
 *.code-workspace
+
+serviceAccountKey.json
