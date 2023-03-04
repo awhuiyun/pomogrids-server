@@ -25,7 +25,7 @@ async function getSettings(req: Request, res: Response) {
       );
     });
 
-    res.send(result);
+    return res.send(result);
   } catch (error) {
     console.error(" POST /settings/get", error);
     return res.status(400).json({
@@ -83,7 +83,7 @@ async function updateSettings(req: Request, res: Response) {
       );
     });
 
-    res.send(result);
+    return res.send(result);
   } catch (error) {
     console.error(" PATCH /settings/update", error);
     return res.status(400).json({

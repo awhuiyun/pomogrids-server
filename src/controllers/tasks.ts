@@ -58,7 +58,7 @@ async function getTasksByYear(req: Request, res: Response) {
       response.push(revised_item);
     });
 
-    res.send(response);
+    return res.send(response);
   } catch (error) {
     console.error(" POST /tasks/get-tasks-by-year", error);
     return res.status(400).json({
@@ -146,7 +146,7 @@ async function getUnarchivedTasks(req: Request, res: Response) {
       response.push(revised_item);
     });
 
-    res.send(response);
+    return res.send(response);
   } catch (error) {
     console.error(" POST /tasks/unarchived-tasks", error);
     return res.status(400).json({
@@ -183,7 +183,7 @@ async function archiveTask(req: Request, res: Response) {
       );
     });
 
-    res.send(result);
+    return res.send(result);
   } catch (error) {
     console.error(" PATCH /tasks/archive-task", error);
     return res.status(400).json({
@@ -238,7 +238,8 @@ async function createNewTask(req: Request, res: Response) {
         }
       );
     });
-    res.send(result);
+
+    return res.send(result);
   } catch (error) {
     console.error(" POST /tasks/create", error);
     return res.status(400).json({
@@ -293,7 +294,7 @@ async function updateExistingTask(req: Request, res: Response) {
       );
     });
 
-    res.send(result);
+    return res.send(result);
   } catch (error) {
     console.error(" PATCH /tasks/update", error);
     return res.status(400).json({
@@ -344,7 +345,7 @@ async function deleteExistingTask(req: Request, res: Response) {
       });
     });
 
-    res.send(result_tasks);
+    return res.send(result_tasks);
   } catch (error) {
     console.error(" DELETE /tasks/delete", error);
     return res.status(400).json({
@@ -419,7 +420,8 @@ async function updateTaskAfterSession(req: Request, res: Response) {
           }
         );
       });
-      res.send(result);
+
+      return res.send(result);
     } else {
       const result = await new Promise((resolve, reject) => {
         db.query(
@@ -436,7 +438,8 @@ async function updateTaskAfterSession(req: Request, res: Response) {
           }
         );
       });
-      res.send(result);
+
+      return res.send(result);
     }
   } catch (error) {
     console.error(" PATCH /tasks/session-complete", error);
