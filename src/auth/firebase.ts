@@ -1,8 +1,11 @@
 import * as admin from "firebase-admin";
-const serviceAccount = require("../../serviceAccountKey.json");
 
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
+  credential: admin.credential.cert({
+    clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
+    privateKey: process.env.FIREBASE_ADMIN_PRIVATE_KEY,
+    projectId: process.env.FIREBASE_ADMIN_PROJECT_ID,
+  }),
 });
 
 export { admin };
