@@ -42,7 +42,8 @@ async function createNewAccount(req: Request, res: Response) {
       }
 
       // If user does not exist, create new account for user
-      const result = await new Promise((resolve, reject) => {
+      // Create a new record in Users table
+      const newUser = await new Promise((resolve, reject) => {
         db.query(
           "INSERT INTO users (id, email, tier) VALUES ((?), (?), (?))",
           [uid, email, "basic"],
@@ -56,7 +57,22 @@ async function createNewAccount(req: Request, res: Response) {
         );
       });
 
-      return res.send(result);
+      // Create a new record in Settings table
+      const newUserSettings = await new Promise((resolve, reject) => {
+        db.query(
+          "INSERT INTO settings (user_id, pomodoro_minutes, short_break_minutes,long_break_minutes, number_of_sessions_in_a_cycle, alarm_ringtone, alarm_volume ) VALUES ((?), (?), (?), (?), (?), (?), (?))",
+          [uid, 25, 5, 15, 4, "buzzer", 0.5],
+          (error, result) => {
+            if (error) {
+              return reject(error);
+            } else {
+              return resolve("New user successfully created!");
+            }
+          }
+        );
+      });
+
+      return res.send(newUserSettings);
     } // User is not authenticated
     else {
       return res.sendStatus(401).json({
