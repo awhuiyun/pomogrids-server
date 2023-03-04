@@ -2,7 +2,6 @@ import { RowDataPacket } from "mysql2";
 import { admin } from "../auth/firebase";
 import { Request, Response } from "express";
 import { db } from "../db";
-
 // Function to check if user exists in User table
 export interface IUserId extends RowDataPacket {
   id: string;
@@ -21,7 +20,6 @@ async function createNewAccount(req: Request, res: Response) {
       const decodedToken = await admin.auth().verifyIdToken(idToken);
       uid = decodedToken.uid;
       email = decodedToken.email ?? "";
-      console.log(uid, email);
 
       // Check if user account exists
       const user = await new Promise<IUserId[]>((resolve, reject) => {

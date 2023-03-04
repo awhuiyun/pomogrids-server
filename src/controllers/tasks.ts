@@ -1,9 +1,9 @@
 import { Response, Request } from "express";
+import { authenticateJWT } from "../middleware/auth";
 import { db } from "../db";
 
 // Function to get tasks by year
 type GetTaskByYearPayload = {
-  user_id: string;
   year: number;
 };
 
@@ -17,7 +17,12 @@ type TaskItem = {
 
 async function getTasksByYear(req: Request, res: Response) {
   try {
-    const { user_id, year } = req.body as GetTaskByYearPayload;
+    // Authenticate jwt
+    const decodedToken = await authenticateJWT(req.headers.authorization);
+
+    // User successfully authenticated
+    const uid = decodedToken.uid;
+    const { year } = req.body as GetTaskByYearPayload;
 
     // Convert local time to UTC timezone:
     const start_date_utc = new Date(year + "-01-01").toISOString(); // UTC
@@ -27,7 +32,7 @@ async function getTasksByYear(req: Request, res: Response) {
     let db_result: TaskItem[] = await new Promise((resolve, reject) => {
       db.query<any[]>(
         "SELECT tasks.task_name, tasks_sessions.date_of_session, tasks_sessions.number_of_minutes, tasks.category_name, tasks.category_colour FROM tasks_sessions JOIN tasks ON tasks_sessions.task_id = tasks.id WHERE tasks.user_id = (?) AND (tasks_sessions.date_of_session BETWEEN (?) AND (?) )",
-        [user_id, start_date_utc, end_date_utc],
+        [uid, start_date_utc, end_date_utc],
         (error, result) => {
           if (error) {
             return reject(error);
@@ -64,10 +69,6 @@ async function getTasksByYear(req: Request, res: Response) {
 }
 
 // Function to get unarchived tasks
-type GetUnarchivedTasksPayload = {
-  user_id: string;
-};
-
 type UnarchivedTaskItem = {
   user_id: string;
   task_id: string;
@@ -95,14 +96,18 @@ type ModifiedUnarchivedTaskItem = {
 
 async function getUnarchivedTasks(req: Request, res: Response) {
   try {
-    const { user_id } = req.body as GetUnarchivedTasksPayload;
+    // Authenticate jwt
+    const decodedToken = await authenticateJWT(req.headers.authorization);
+
+    // User successfully authenticated
+    const uid = decodedToken.uid;
 
     // Query for raw results
     const result: UnarchivedTaskItem[] = await new Promise(
       (resolve, reject) => {
         db.query<any[]>(
           "SELECT user_id, id as task_id, task_name, target_num_of_sessions, category_name, category_colour, SUM(tasks_sessions.number_of_sessions) as completed_num_of_sessions, is_archived FROM tasks LEFT JOIN tasks_sessions ON tasks.id = tasks_sessions.task_id GROUP BY id HAVING tasks.user_id = (?) AND tasks.is_archived = (?)",
-          [user_id, false],
+          [uid, false],
           (error, result) => {
             if (error) {
               return reject(error);
@@ -158,6 +163,10 @@ type ArchiveTaskPayload = {
 
 async function archiveTask(req: Request, res: Response) {
   try {
+    // Authenticate jwt
+    await authenticateJWT(req.headers.authorization);
+
+    // User successfully authenticated
     const { task_id } = req.body as ArchiveTaskPayload;
 
     const result = await new Promise((resolve, reject) => {
@@ -186,7 +195,7 @@ async function archiveTask(req: Request, res: Response) {
 
 // Function to create new tasks
 type CreateNewTaskPayload = {
-  user_id: string;
+  task_id: string;
   task_name: string;
   target_num_of_sessions: string;
   category_name?: string;
@@ -195,8 +204,13 @@ type CreateNewTaskPayload = {
 
 async function createNewTask(req: Request, res: Response) {
   try {
+    // Authenticate jwt
+    const decodedToken = await authenticateJWT(req.headers.authorization);
+
+    // User successfully authenticated
+    const uid = decodedToken.uid;
     const {
-      user_id,
+      task_id,
       task_name,
       target_num_of_sessions,
       category_name,
@@ -205,12 +219,13 @@ async function createNewTask(req: Request, res: Response) {
 
     const result = await new Promise((resolve, reject) => {
       db.query(
-        "INSERT INTO tasks (task_name, target_num_of_sessions, is_archived, user_id, category_name, category_colour) VALUES ((?), (?), (?), (?), (?), (?))",
+        "INSERT INTO tasks (id, task_name, target_num_of_sessions, is_archived, user_id, category_name, category_colour) VALUES ((?), (?), (?), (?), (?), (?), (?))",
         [
+          task_id,
           task_name,
           target_num_of_sessions,
           false,
-          user_id,
+          uid,
           category_name,
           category_colour,
         ],
@@ -235,7 +250,6 @@ async function createNewTask(req: Request, res: Response) {
 
 // Function to update existing task
 type UpdateExistingTaskPayload = {
-  user_id: string;
   task_id: string;
   task_name: string;
   target_num_of_sessions: string;
@@ -245,8 +259,12 @@ type UpdateExistingTaskPayload = {
 
 async function updateExistingTask(req: Request, res: Response) {
   try {
+    // Authenticate jwt
+    const decodedToken = await authenticateJWT(req.headers.authorization);
+
+    // User successfully authenticated
+    const uid = decodedToken.uid;
     const {
-      user_id,
       task_id,
       task_name,
       target_num_of_sessions,
@@ -262,7 +280,7 @@ async function updateExistingTask(req: Request, res: Response) {
           target_num_of_sessions,
           category_name,
           category_colour,
-          user_id,
+          uid,
           task_id,
         ],
         (error, result) => {
@@ -292,8 +310,13 @@ type DeleteExistingTaskPayload = {
 
 async function deleteExistingTask(req: Request, res: Response) {
   try {
+    // Authenticate jwt
+    await authenticateJWT(req.headers.authorization);
+
+    // User successfully authenticated
     const { task_id } = req.body as DeleteExistingTaskPayload;
 
+    // Delete from tasks_sessions table
     await new Promise((resolve, reject) => {
       db.query(
         "DELETE FROM tasks_sessions WHERE task_id=(?)",
@@ -310,6 +333,7 @@ async function deleteExistingTask(req: Request, res: Response) {
       );
     });
 
+    // Delete from tasks table
     const result_tasks = await new Promise((resolve, reject) => {
       db.query("DELETE FROM tasks WHERE id=(?)", [task_id], (error, result) => {
         if (error) {
@@ -339,6 +363,10 @@ type UpdateTaskAfterSessioPayload = {
 
 async function updateTaskAfterSession(req: Request, res: Response) {
   try {
+    // Authenticate jwt
+    await authenticateJWT(req.headers.authorization);
+
+    // User successfully authenticated
     const { task_id, number_of_sessions, number_of_minutes } =
       req.body as UpdateTaskAfterSessioPayload;
 
@@ -359,7 +387,6 @@ async function updateTaskAfterSession(req: Request, res: Response) {
             return reject(error);
           } else {
             if (result.length > 0) {
-              console.log(result);
               current_num_of_sessions = result[0].number_of_sessions;
               current_num_of_minutes = result[0].number_of_minutes;
             } else {

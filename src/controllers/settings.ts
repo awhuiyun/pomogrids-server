@@ -1,19 +1,20 @@
 import { Response, Request } from "express";
+import { authenticateJWT } from "../middleware/auth";
 import { db } from "../db";
 
 // Function to get settings
-type GetSettingsPayload = {
-  user_id: string;
-};
-
 async function getSettings(req: Request, res: Response) {
   try {
-    const { user_id } = req.body as GetSettingsPayload;
+    // Authenticate jwt
+    const decodedToken = await authenticateJWT(req.headers.authorization);
+
+    // User successfully authenticated
+    const uid = decodedToken.uid;
 
     const result = await new Promise((resolve, reject) => {
       db.query(
         "SELECT * FROM settings WHERE user_id = (?)",
-        [user_id],
+        [uid],
         (error, result) => {
           if (error) {
             return reject(error);
@@ -36,7 +37,6 @@ async function getSettings(req: Request, res: Response) {
 
 // Function to update settings
 type UpdateSettingsPayload = {
-  user_id: string;
   pomodoro_minutes: string;
   short_break_minutes: string;
   long_break_minutes: string;
@@ -47,8 +47,12 @@ type UpdateSettingsPayload = {
 
 async function updateSettings(req: Request, res: Response) {
   try {
+    // Authenticate jwt
+    const decodedToken = await authenticateJWT(req.headers.authorization);
+
+    // User successfully authenticated
+    const uid = decodedToken.uid;
     const {
-      user_id,
       pomodoro_minutes,
       short_break_minutes,
       long_break_minutes,
@@ -67,7 +71,7 @@ async function updateSettings(req: Request, res: Response) {
           number_of_sessions_in_a_cycle,
           alarm_ringtone,
           alarm_volume,
-          user_id,
+          uid,
         ],
         (error, result) => {
           if (error) {
