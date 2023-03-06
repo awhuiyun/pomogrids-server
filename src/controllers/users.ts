@@ -2,7 +2,43 @@ import { RowDataPacket } from "mysql2";
 import { admin } from "../auth/firebase";
 import { Request, Response } from "express";
 import { db } from "../db";
-// Function to check if user exists in User table
+import { authenticateJWT } from "../middleware/auth";
+
+// Function to retrieve user's tier
+async function getUserTier(req: Request, res: Response) {
+  try {
+    // Authenticate jwt
+    const decodedToken = await authenticateJWT(req.headers.authorization);
+
+    // User successfully authenticated
+    const uid = decodedToken.uid;
+
+    // Query for result
+    const result = await new Promise((resolve, reject) => {
+      db.query(
+        "SELECT tier FROM users WHERE id = (?)",
+        [uid],
+        (error, result) => {
+          if (error) {
+            return reject(error);
+          } else {
+            return resolve(result);
+          }
+        }
+      );
+    });
+
+    return res.send(result);
+  } catch (error) {
+    console.error(" POST /users/get-user-tier", error);
+    return res.status(400).json({
+      status: "error",
+      message: "request to get user's tier failed",
+    });
+  }
+}
+
+// Function to create new account
 export interface IUserId extends RowDataPacket {
   id: string;
 }
@@ -89,4 +125,4 @@ async function createNewAccount(req: Request, res: Response) {
   }
 }
 
-export { createNewAccount };
+export { createNewAccount, getUserTier };
