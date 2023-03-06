@@ -15,6 +15,14 @@ type TaskItem = {
   category_colour: string | null;
 };
 
+type TaskItemResponse = {
+  taskName: string;
+  dateOfSession: string;
+  completedNumOfMinutes: number;
+  category_name: string | null;
+  category_colour: string | null;
+};
+
 async function getTasksByYear(req: Request, res: Response) {
   try {
     // Authenticate jwt
@@ -44,21 +52,24 @@ async function getTasksByYear(req: Request, res: Response) {
     });
 
     // Manipulate the result:
-    const response: TaskItem[] = [];
+    // Change date to local time:
+    const db_result_edited: TaskItemResponse[] = [];
 
     db_result.forEach((item) => {
       const revised_item = {
-        task_name: item.task_name,
-        date_of_session: new Date(item.date_of_session).toLocaleString(),
-        number_of_minutes: item.number_of_minutes,
+        taskName: item.task_name,
+        dateOfSession: new Date(item.date_of_session)
+          .toLocaleString()
+          .split(",")[0],
+        completedNumOfMinutes: item.number_of_minutes,
         category_name: item.category_name,
         category_colour: item.category_colour,
       };
 
-      response.push(revised_item);
+      db_result_edited.push(revised_item);
     });
 
-    return res.send(response);
+    return res.send(db_result_edited);
   } catch (error) {
     console.error(" POST /tasks/get-tasks-by-year", error);
     return res.status(400).json({
