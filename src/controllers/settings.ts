@@ -1,6 +1,11 @@
+import { RowDataPacket } from "mysql2";
 import { Response, Request } from "express";
 import { authenticateJWT } from "../middleware/auth";
 import { db } from "../db";
+
+export interface UserTier extends RowDataPacket {
+  tier: string;
+}
 
 // Function to get settings
 async function getSettings(req: Request, res: Response) {
@@ -11,9 +16,10 @@ async function getSettings(req: Request, res: Response) {
     // User successfully authenticated
     const uid = decodedToken.uid;
 
-    const result = await new Promise((resolve, reject) => {
-      db.query(
-        "SELECT * FROM settings WHERE user_id = (?)",
+    // Query for user's tier
+    const tier = await new Promise<UserTier[]>((resolve, reject) => {
+      db.query<UserTier[]>(
+        "SELECT tier FROM users WHERE id = (?)",
         [uid],
         (error, result) => {
           if (error) {
@@ -24,8 +30,28 @@ async function getSettings(req: Request, res: Response) {
         }
       );
     });
+    // console.log(tier[0].tier);
 
-    return res.send(result);
+    if (tier[0].tier === "premium") {
+      const result = await new Promise((resolve, reject) => {
+        db.query(
+          "SELECT * FROM settings WHERE user_id = (?)",
+          [uid],
+          (error, result) => {
+            if (error) {
+              return reject(error);
+            } else {
+              return resolve(result);
+            }
+          }
+        );
+      });
+      console.log(result);
+      return res.send(result);
+    } else {
+      console.log("unauthorized");
+      return res.send("unauthorized");
+    }
   } catch (error) {
     console.error(" POST /settings/get", error);
     return res.status(400).json({
@@ -61,29 +87,50 @@ async function updateSettings(req: Request, res: Response) {
       alarm_volume,
     } = req.body as UpdateSettingsPayload;
 
-    const result = await new Promise((resolve, reject) => {
-      db.query(
-        "UPDATE settings SET pomodoro_minutes=(?), short_break_minutes=(?), long_break_minutes=(?),number_of_sessions_in_a_cycle=(?),alarm_ringtone=(?),alarm_volume=(?) WHERE user_id=(?)",
-        [
-          pomodoro_minutes,
-          short_break_minutes,
-          long_break_minutes,
-          number_of_sessions_in_a_cycle,
-          alarm_ringtone,
-          alarm_volume,
-          uid,
-        ],
+    // Query for user's tier
+    const tier = await new Promise<UserTier[]>((resolve, reject) => {
+      db.query<UserTier[]>(
+        "SELECT tier FROM users WHERE id = (?)",
+        [uid],
         (error, result) => {
           if (error) {
             return reject(error);
           } else {
-            return resolve("Settings successfully updated!");
+            return resolve(result);
           }
         }
       );
     });
+    // console.log(tier[0].tier);
 
-    return res.send(result);
+    if (tier[0].tier === "premium") {
+      const result = await new Promise((resolve, reject) => {
+        db.query(
+          "UPDATE settings SET pomodoro_minutes=(?), short_break_minutes=(?), long_break_minutes=(?),number_of_sessions_in_a_cycle=(?),alarm_ringtone=(?),alarm_volume=(?) WHERE user_id=(?)",
+          [
+            pomodoro_minutes,
+            short_break_minutes,
+            long_break_minutes,
+            number_of_sessions_in_a_cycle,
+            alarm_ringtone,
+            alarm_volume,
+            uid,
+          ],
+          (error, result) => {
+            if (error) {
+              return reject(error);
+            } else {
+              return resolve("Settings successfully updated!");
+            }
+          }
+        );
+      });
+
+      return res.send(result);
+    } else {
+      console.log("unauthorized");
+      return res.send("unauthorized");
+    }
   } catch (error) {
     console.error(" PATCH /settings/update", error);
     return res.status(400).json({
