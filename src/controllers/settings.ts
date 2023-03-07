@@ -16,10 +16,9 @@ async function getSettings(req: Request, res: Response) {
     // User successfully authenticated
     const uid = decodedToken.uid;
 
-    // Query for user's tier
-    const tier = await new Promise<UserTier[]>((resolve, reject) => {
-      db.query<UserTier[]>(
-        "SELECT tier FROM users WHERE id = (?)",
+    const result = await new Promise((resolve, reject) => {
+      db.query(
+        "SELECT * FROM settings WHERE user_id = (?)",
         [uid],
         (error, result) => {
           if (error) {
@@ -31,26 +30,7 @@ async function getSettings(req: Request, res: Response) {
       );
     });
 
-    if (tier[0].tier === "premium") {
-      const result = await new Promise((resolve, reject) => {
-        db.query(
-          "SELECT * FROM settings WHERE user_id = (?)",
-          [uid],
-          (error, result) => {
-            if (error) {
-              return reject(error);
-            } else {
-              return resolve(result);
-            }
-          }
-        );
-      });
-
-      return res.send(result);
-    } else {
-      console.log("unauthorized");
-      return res.send("unauthorized");
-    }
+    return res.send(result);
   } catch (error) {
     console.error(" POST /settings/get", error);
     return res.status(400).json({
