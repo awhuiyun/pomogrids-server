@@ -30,7 +30,6 @@ async function getSettings(req: Request, res: Response) {
         }
       );
     });
-    // console.log(tier[0].tier);
 
     if (tier[0].tier === "premium") {
       const result = await new Promise((resolve, reject) => {
@@ -46,7 +45,7 @@ async function getSettings(req: Request, res: Response) {
           }
         );
       });
-      console.log(result);
+
       return res.send(result);
     } else {
       console.log("unauthorized");
@@ -69,6 +68,7 @@ type UpdateSettingsPayload = {
   number_of_sessions_in_a_cycle: number;
   alarm_ringtone: string;
   alarm_volume: number;
+  week_start: string;
 };
 
 async function updateSettings(req: Request, res: Response) {
@@ -85,6 +85,7 @@ async function updateSettings(req: Request, res: Response) {
       number_of_sessions_in_a_cycle,
       alarm_ringtone,
       alarm_volume,
+      week_start,
     } = req.body as UpdateSettingsPayload;
 
     // Query for user's tier
@@ -106,7 +107,7 @@ async function updateSettings(req: Request, res: Response) {
     if (tier[0].tier === "premium") {
       const result = await new Promise((resolve, reject) => {
         db.query(
-          "UPDATE settings SET pomodoro_minutes=(?), short_break_minutes=(?), long_break_minutes=(?),number_of_sessions_in_a_cycle=(?),alarm_ringtone=(?),alarm_volume=(?) WHERE user_id=(?)",
+          "UPDATE settings SET pomodoro_minutes=(?), short_break_minutes=(?), long_break_minutes=(?),number_of_sessions_in_a_cycle=(?),alarm_ringtone=(?),alarm_volume=(?), week_start=(?) WHERE user_id=(?)",
           [
             pomodoro_minutes,
             short_break_minutes,
@@ -114,6 +115,7 @@ async function updateSettings(req: Request, res: Response) {
             number_of_sessions_in_a_cycle,
             alarm_ringtone,
             alarm_volume,
+            week_start,
             uid,
           ],
           (error, result) => {
