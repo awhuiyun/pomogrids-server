@@ -32,15 +32,11 @@ async function getTasksByYear(req: Request, res: Response) {
     const uid = decodedToken.uid;
     const { year } = req.body as GetTaskByYearPayload;
 
-    // Convert local time to UTC timezone:
-    const start_date_utc = new Date(year + "-01-01").toISOString(); // UTC
-    const end_date_utc = new Date(year + 1 + "-01-01").toISOString(); // UTC
-
     //  Query for result
     let db_result: TaskItem[] = await new Promise((resolve, reject) => {
       db.query<any[]>(
-        "SELECT tasks.task_name, tasks_sessions.date_of_session, tasks_sessions.number_of_minutes, tasks.category_name, tasks.category_colour FROM tasks_sessions JOIN tasks ON tasks_sessions.task_id = tasks.id WHERE tasks.user_id = (?) AND (tasks_sessions.date_of_session BETWEEN (?) AND (?) )",
-        [uid, start_date_utc, end_date_utc],
+        "SELECT tasks.task_name, tasks_sessions.date_of_session, tasks_sessions.number_of_minutes, tasks.category_name, tasks.category_colour FROM tasks_sessions JOIN tasks ON tasks_sessions.task_id = tasks.id WHERE tasks.user_id = (?) AND tasks_sessions.year_of_session = (?)",
+        [uid, year],
         (error, result) => {
           if (error) {
             return reject(error);
@@ -392,7 +388,7 @@ async function updateTaskAfterSession(req: Request, res: Response) {
 
     await new Promise((resolve, reject) => {
       db.query<any[]>(
-        "SELECT number_of_sessions, number_of_minutes FROM tasks_sessions WHERE task_id=(?) AND YEAR(tasks_sessions.date_of_session) = (?) AND MONTH(tasks_sessions.date_of_session) = (?) AND DAY(tasks_sessions.date_of_session) = (?)",
+        "SELECT number_of_sessions, number_of_minutes FROM tasks_sessions WHERE task_id=(?) AND year_of_session = (?) AND month_of_session = (?) AND day_of_session = (?)",
         [task_id, today_year, today_month, today_day],
         (error, result) => {
           if (error) {
@@ -418,8 +414,15 @@ async function updateTaskAfterSession(req: Request, res: Response) {
 
       const result = new Promise((resolve, reject) => {
         db.query(
-          "UPDATE tasks_sessions SET number_of_sessions=(?), number_of_minutes=(?) WHERE task_id=(?)",
-          [updated_num_of_sessions, updated_num_of_minutes, task_id],
+          "UPDATE tasks_sessions SET number_of_sessions=(?), number_of_minutes=(?) WHERE task_id=(?) AND year_of_session = (?) AND month_of_session = (?) AND day_of_session = (?)",
+          [
+            updated_num_of_sessions,
+            updated_num_of_minutes,
+            task_id,
+            today_year,
+            today_month,
+            today_day,
+          ],
           (error, result) => {
             if (error) {
               return reject(error);
@@ -436,8 +439,16 @@ async function updateTaskAfterSession(req: Request, res: Response) {
     } else {
       const result = await new Promise((resolve, reject) => {
         db.query(
-          "INSERT INTO tasks_sessions (task_id,number_of_sessions, number_of_minutes, date_of_session ) VALUE ((?),(?),(?),(?))",
-          [task_id, number_of_sessions, number_of_minutes, today_date],
+          "INSERT INTO tasks_sessions (task_id,number_of_sessions, number_of_minutes, date_of_session, year_of_session, month_of_session, day_of_session ) VALUE ((?),(?),(?),(?))",
+          [
+            task_id,
+            number_of_sessions,
+            number_of_minutes,
+            today_date,
+            today_year,
+            today_month,
+            today_day,
+          ],
           (error, result) => {
             if (error) {
               return reject(error);

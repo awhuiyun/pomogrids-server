@@ -24,6 +24,9 @@ CREATE TABLE tasks_sessions (
     number_of_sessions SMALLINT NOT NULL,
     number_of_minutes SMALLINT NOT NULL,
     date_of_session VARCHAR(45) NOT NULL,
+    year_of_session SMALLINT NOT NULL,
+    month_of_session SMALLINT NOT NULL,
+    day_of_session SMALLINT NOT NULL,
     CONSTRAINT fk_tasks FOREIGN KEY(task_id) REFERENCES tasks(id)
 );
 
