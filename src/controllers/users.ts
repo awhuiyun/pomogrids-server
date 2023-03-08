@@ -38,6 +38,40 @@ async function getUserTier(req: Request, res: Response) {
   }
 }
 
+// Function to upgrade user tier
+async function upgradeUserTier(req: Request, res: Response) {
+  try {
+    // Authenticate jwt
+    const decodedToken = await authenticateJWT(req.headers.authorization);
+
+    // User successfully authenticated
+    const uid = decodedToken.uid;
+
+    // Query for result
+    const result = await new Promise((resolve, reject) => {
+      db.query(
+        "UPDATE pomogrids.users SET tier = 'premium' WHERE id = (?)",
+        [uid],
+        (error, result) => {
+          if (error) {
+            return reject(error);
+          } else {
+            return resolve(result);
+          }
+        }
+      );
+    });
+
+    return res.send(result);
+  } catch (error) {
+    console.error(" PATCH /users/upgrade-user-tier", error);
+    return res.status(400).json({
+      status: "error",
+      message: "request to upgrade user's tier failed",
+    });
+  }
+}
+
 // Function to create new account
 export interface IUserId extends RowDataPacket {
   id: string;
@@ -125,4 +159,4 @@ async function createNewAccount(req: Request, res: Response) {
   }
 }
 
-export { createNewAccount, getUserTier };
+export { createNewAccount, getUserTier, upgradeUserTier };
