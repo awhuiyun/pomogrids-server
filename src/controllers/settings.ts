@@ -22,7 +22,7 @@ async function getSettings(req: Request, res: Response) {
         [uid],
         (error, result) => {
           if (error) {
-            return reject(error);
+            return reject(error); // error will be caught at "catch"
           } else {
             return resolve(result);
           }
@@ -82,7 +82,6 @@ async function updateSettings(req: Request, res: Response) {
         }
       );
     });
-    // console.log(tier[0].tier);
 
     if (tier[0].tier === "premium") {
       const result = await new Promise((resolve, reject) => {
@@ -110,7 +109,6 @@ async function updateSettings(req: Request, res: Response) {
 
       return res.send(result);
     } else {
-      console.log("unauthorized");
       return res.send("unauthorized");
     }
   } catch (error) {

@@ -5,6 +5,10 @@ import { db } from "../db";
 import { authenticateJWT } from "../middleware/auth";
 
 // Function to retrieve user's tier
+interface IUserTier {
+  tier: "premiun" | "basic";
+}
+
 async function getUserTier(req: Request, res: Response) {
   try {
     // Authenticate jwt
@@ -20,7 +24,7 @@ async function getUserTier(req: Request, res: Response) {
         [uid],
         (error, result) => {
           if (error) {
-            return reject(error);
+            return reject(error); // error will be caught at "catch"
           } else {
             return resolve(result);
           }
@@ -54,13 +58,17 @@ async function upgradeUserTier(req: Request, res: Response) {
         [uid],
         (error, result) => {
           if (error) {
-            return reject(error);
+            return reject(error); // error will be caught at "catch"
           } else {
-            return resolve(result);
+            return resolve("Successfully upgraded user!");
           }
         }
       );
     });
+
+    // const responseMessage = {
+    //   message: result,
+    // };
 
     return res.send(result);
   } catch (error) {

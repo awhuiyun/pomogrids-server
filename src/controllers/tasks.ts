@@ -39,7 +39,7 @@ async function getTasksByYear(req: Request, res: Response) {
         [uid, year],
         (error, result) => {
           if (error) {
-            return reject(error);
+            return reject(error); // error will be caught at "catch"
           } else {
             return resolve(result);
           }
@@ -238,7 +238,7 @@ async function createNewTask(req: Request, res: Response) {
         ],
         (error, result) => {
           if (error) {
-            return reject(error);
+            return reject(error); // error will be caught at "catch"
           } else {
             return resolve("New task successfully created!");
           }
@@ -293,7 +293,7 @@ async function updateExistingTask(req: Request, res: Response) {
         ],
         (error, result) => {
           if (error) {
-            return reject(error);
+            return reject(error); // error will be caught at "catch"
           } else {
             return resolve("Existing task successfully updated!");
           }
@@ -331,11 +331,9 @@ async function deleteExistingTask(req: Request, res: Response) {
         [task_id],
         (error, result) => {
           if (error) {
-            return reject(error);
+            return reject(error); // error will be caught at "catch"
           } else {
-            return resolve(
-              "Task successfully deleted from task_sessions table"
-            );
+            return resolve("Task successfully deleted!");
           }
         }
       );
@@ -345,9 +343,9 @@ async function deleteExistingTask(req: Request, res: Response) {
     const result_tasks = await new Promise((resolve, reject) => {
       db.query("DELETE FROM tasks WHERE id=(?)", [task_id], (error, result) => {
         if (error) {
-          return reject(error);
+          return reject(error); // error will be caught at "catch"
         } else {
-          return resolve("Task successfully deleted from task table");
+          return resolve("Task successfully deleted!");
         }
       });
     });
@@ -385,14 +383,14 @@ async function updateTaskAfterSession(req: Request, res: Response) {
     const today_day = parseInt(today_date.split("T")[0].split("-")[2]);
     let current_num_of_sessions = 0;
     let current_num_of_minutes = 0;
-
+    console.log(today_year, today_month, today_day);
     await new Promise((resolve, reject) => {
       db.query<any[]>(
         "SELECT number_of_sessions, number_of_minutes FROM tasks_sessions WHERE task_id=(?) AND year_of_session = (?) AND month_of_session = (?) AND day_of_session = (?)",
         [task_id, today_year, today_month, today_day],
         (error, result) => {
           if (error) {
-            return reject(error);
+            return reject(error); // error will be caught at "catch"
           } else {
             if (result.length > 0) {
               current_num_of_sessions = result[0].number_of_sessions;
@@ -407,6 +405,7 @@ async function updateTaskAfterSession(req: Request, res: Response) {
       );
     });
 
+    // Task has been worked on for the day: Update
     if (current_num_of_sessions > 0) {
       const updated_num_of_sessions =
         current_num_of_sessions + number_of_sessions;
@@ -436,10 +435,11 @@ async function updateTaskAfterSession(req: Request, res: Response) {
       });
 
       return res.send(result);
-    } else {
+    } // Task has not been worked on the day: Create new row
+    else {
       const result = await new Promise((resolve, reject) => {
         db.query(
-          "INSERT INTO tasks_sessions (task_id,number_of_sessions, number_of_minutes, date_of_session, year_of_session, month_of_session, day_of_session ) VALUE ((?),(?),(?),(?))",
+          "INSERT INTO tasks_sessions (task_id,number_of_sessions, number_of_minutes, date_of_session, year_of_session, month_of_session, day_of_session ) VALUE ((?),(?),(?),(?),(?),(?),(?))",
           [
             task_id,
             number_of_sessions,
