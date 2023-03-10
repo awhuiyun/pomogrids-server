@@ -54,7 +54,7 @@ async function upgradeUserTier(req: Request, res: Response) {
     // Query for result
     const result = await new Promise((resolve, reject) => {
       db.query(
-        "UPDATE pomogrids.users SET tier = 'premium' WHERE id = (?)",
+        "UPDATE users SET tier = 'premium' WHERE id = (?)",
         [uid],
         (error, result) => {
           if (error) {
@@ -138,8 +138,8 @@ async function createNewAccount(req: Request, res: Response) {
       // Create a new record in Settings table
       const newUserSettings = await new Promise((resolve, reject) => {
         db.query(
-          "INSERT INTO settings (user_id, pomodoro_minutes, short_break_minutes,long_break_minutes, number_of_sessions_in_a_cycle, alarm_ringtone, alarm_volume ) VALUES ((?), (?), (?), (?), (?), (?), (?))",
-          [uid, 25, 5, 15, 4, "buzzer", 0.5],
+          "INSERT INTO settings (user_id, pomodoro_minutes, short_break_minutes,long_break_minutes, number_of_sessions_in_a_cycle, alarm_ringtone, alarm_volume, week_start ) VALUES ((?), (?), (?), (?), (?), (?), (?), (?))",
+          [uid, 25, 5, 15, 4, "buzzer", 0.5, "monday"],
           (error, result) => {
             if (error) {
               return reject(error);
